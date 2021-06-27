@@ -90,16 +90,18 @@ func (obj *Leaves) BuildTree(opt ...OptionFunc) (*Root, error) {
 
 	h := opts.HashFunc
 
-	for i := 0; i < obj.Length(); i++ {
-		digest, err := h.Hash((*obj)[i].Payload)
-		if err != nil {
-			return nil, err
+	if !opts.SkipHash {
+		for i := 0; i < obj.Length(); i++ {
+			digest, err := h.Hash((*obj)[i].Payload)
+			if err != nil {
+				return nil, err
+			}
+
+			(*obj)[i].Hash = digest
+
+			// TODO:
+			fmt.Println(fmt.Sprintf("Payload=%s, Digest=%v", (*obj)[i].Payload, (*obj)[i].Hash))
 		}
-
-		(*obj)[i].Hash = digest
-
-		// TODO:
-		fmt.Println(fmt.Sprintf("Payload=%s, Digest=%v", (*obj)[i].Payload, (*obj)[i].Hash))
 	}
 
 	if obj.Length()%2 == 1 {

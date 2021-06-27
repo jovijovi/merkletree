@@ -9,6 +9,9 @@ type Options struct {
 	// HashFunc interface
 	HashFunc IHashFunc
 
+	// SkipHash switch
+	SkipHash bool
+
 	// Options for implementations of the interface can be stored in a context
 	Context context.Context
 }
@@ -34,5 +37,12 @@ func NewOptions(optionFunc ...OptionFunc) Options {
 func WithHashFunc(hashFunc IHashFunc) OptionFunc {
 	return func(o *Options) {
 		o.HashFunc = hashFunc
+	}
+}
+
+// WithSkipHash option to configure skip hash
+func WithSkipHash(skipHash bool) OptionFunc {
+	return func(o *Options) {
+		o.SkipHash = skipHash
 	}
 }
