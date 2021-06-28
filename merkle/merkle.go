@@ -242,7 +242,7 @@ func (tree *Tree) X(y uint64) uint64 {
 	return tree.Width(y) - 1
 }
 
-// GetRootHash return root hash
+// GetRootHash returns root hash
 func (tree *Tree) GetRootHash() ([]byte, error) {
 	if tree == nil || tree.Height() == 0 {
 		return nil, errors.New("tree is empty")
@@ -251,6 +251,7 @@ func (tree *Tree) GetRootHash() ([]byte, error) {
 	return (*tree)[tree.Y()][0], nil
 }
 
+// GetHash returns hash by (y,x)
 func (tree *Tree) GetHash(y uint64, x uint64) ([]byte, error) {
 	if tree == nil || tree.Height() == 0 {
 		return nil, errors.New("tree is empty")
@@ -261,4 +262,35 @@ func (tree *Tree) GetHash(y uint64, x uint64) ([]byte, error) {
 	}
 
 	return (*tree)[y][x], nil
+}
+
+// PoN is position of node, PoN[0] is y, PoN[1] is x
+type PoN [2]uint64
+
+// PoNs is positions of nodes, from leaf to the root
+type PoNs []PoN
+
+// GetParent returns parent of node
+func (pon PoN) GetParent() PoN {
+	return PoN{pon[0] + 1, pon[1] / 2}
+}
+
+// GetPath returns merkle path, pons is Positions Of Nodes
+func (pons *PoNs) GetPath(height uint64, y uint64, x uint64) {
+	pon := PoN{y}
+	if x%2 == 0 {
+		pon[1] = x + 1
+	} else {
+		pon[1] = x - 1
+	}
+
+	if y == height-1 {
+		return
+	}
+
+	*pons = append(*pons, pon)
+
+	parent := pon.GetParent()
+
+	pons.GetPath(height, parent[0], parent[1])
 }

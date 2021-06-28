@@ -152,3 +152,9 @@ func TestB(t *testing.T) {
 		t.Log("Root=", root)
 	}
 }
+
+func TestPoNs_GetPath(t *testing.T) {
+	pons := make(merkle.PoNs, 0)
+	pons.GetPath(5, 0, 1)
+	t.Log("MerklePath=", pons)
+}
