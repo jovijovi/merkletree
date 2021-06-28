@@ -38,8 +38,12 @@ func DefaultHashFunc() IHashFunc {
 	return hashFunc
 }
 
+type Hash []byte
+
+type Tree [][]Hash
+
 type Node struct {
-	Degree  int
+	Height  int
 	Hash    []byte
 	Left    *Node
 	Right   *Node
@@ -52,7 +56,7 @@ type Root = Node
 
 func NewLeaf() Leaf {
 	return Leaf{
-		Degree: 1,
+		Height: 0,
 	}
 }
 
@@ -76,15 +80,15 @@ func (obj *Leaves) LastLeaf() *Leaf {
 
 func (obj *Leaves) Clone(leaf *Leaf) *Leaf {
 	clone := NewLeaf()
-	clone.Degree = leaf.Degree
+	clone.Height = leaf.Height
 	clone.Hash = leaf.Hash
 	clone.Payload = leaf.Payload
 	return &clone
 }
 
-func (obj *Leaves) BuildTree(opt ...OptionFunc) (*Root, error) {
+func (obj *Leaves) BuildTree(opt ...OptionFunc) (*Tree, *Root, error) {
 	if obj == nil {
-		return nil, errors.New("not found leaf")
+		return nil, nil, errors.New("not found leaf")
 	}
 	opts := NewOptions(opt...)
 
@@ -94,7 +98,7 @@ func (obj *Leaves) BuildTree(opt ...OptionFunc) (*Root, error) {
 		for i := 0; i < obj.Length(); i++ {
 			digest, err := h.Hash((*obj)[i].Payload)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			(*obj)[i].Hash = digest
@@ -109,16 +113,39 @@ func (obj *Leaves) BuildTree(opt ...OptionFunc) (*Root, error) {
 		*obj = append(*obj, *clone)
 	}
 
-	root, err := obj.buildBranch(*obj, h)
+	tree, err := obj.initTree()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return root, nil
+	root, err := obj.buildBranch(*obj, tree, h)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return tree, root, nil
 }
 
-func (obj *Leaves) buildBranch(nodes []Node, h IHashFunc) (*Root, error) {
+func (obj *Leaves) initTree() (*Tree, error) {
+	if obj.Length() == 0 {
+		return nil, errors.New("not found")
+	}
+
+	tree := make(Tree, 1)
+	hashSet := make([]Hash, obj.Length())
+
+	for i := 0; i < obj.Length(); i++ {
+		hashSet[i] = (*obj)[i].Hash
+	}
+
+	tree[0] = hashSet
+
+	return &tree, nil
+}
+
+func (obj *Leaves) buildBranch(nodes []Node, tree *Tree, h IHashFunc) (*Root, error) {
 	var branches []Node
+	var hashSet []Hash
 
 	length := len(nodes)
 
@@ -133,23 +160,105 @@ func (obj *Leaves) buildBranch(nodes []Node, h IHashFunc) (*Root, error) {
 			return nil, err
 		}
 
+		Height := nodes[left].Height + 1
+
 		branch := Node{
-			Degree: nodes[left].Degree + 1,
+			Height: Height,
 			Hash:   digest,
 			Left:   &nodes[left],
 			Right:  &nodes[right],
 		}
 
 		branches = append(branches, branch)
+		hashSet = append(hashSet, digest)
 
 		if length == 2 {
+			*tree = append(*tree, hashSet)
 			return &branch, nil
 		}
 	}
 
-	return obj.buildBranch(branches, h)
+	*tree = append(*tree, hashSet)
+
+	return obj.buildBranch(branches, tree, h)
 }
 
 func (root *Root) Marshal() ([]byte, error) {
 	return json.Marshal(root)
+}
+
+/*
+     Y
+     ^
+     |
+     +------------
+2    | 0 |   |   |
+     +------------
+1    | 0 | 1 |   |
+     +------------
+0    | 0 | 1 | 2 |
+   --+-----------------> X
+     | 0   1   2
+*/
+
+// Marshal returns bytes of tree
+func (tree *Tree) Marshal() ([]byte, error) {
+	if tree == nil {
+		return nil, errors.New("tree is empty")
+	}
+	return json.Marshal(tree)
+}
+
+// Height returns height of tree
+func (tree *Tree) Height() uint64 {
+	if tree == nil {
+		return 0
+	}
+	return uint64(len(*tree))
+}
+
+// Width returns width of tree by y
+func (tree *Tree) Width(y uint64) uint64 {
+	if tree == nil || tree.Height() == 0 {
+		return 0
+	}
+
+	return uint64(len((*tree)[y]))
+}
+
+// Y returns value of 'y'
+func (tree *Tree) Y() uint64 {
+	if tree == nil || tree.Height() == 0 {
+		return 0
+	}
+	return tree.Height() - 1
+}
+
+// X returns value of 'x'
+func (tree *Tree) X(y uint64) uint64 {
+	if tree == nil || tree.Height() == 0 {
+		return 0
+	}
+	return tree.Width(y) - 1
+}
+
+// GetRootHash return root hash
+func (tree *Tree) GetRootHash() ([]byte, error) {
+	if tree == nil || tree.Height() == 0 {
+		return nil, errors.New("tree is empty")
+	}
+
+	return (*tree)[tree.Y()][0], nil
+}
+
+func (tree *Tree) GetHash(y uint64, x uint64) ([]byte, error) {
+	if tree == nil || tree.Height() == 0 {
+		return nil, errors.New("tree is empty")
+	} else if y > tree.Y() {
+		return nil, errors.New("invalid y")
+	} else if x > tree.X(y) {
+		return nil, errors.New("invalid x")
+	}
+
+	return (*tree)[y][x], nil
 }
