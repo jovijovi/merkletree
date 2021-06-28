@@ -1,45 +1,64 @@
-package merkle_test
+package merkletree_test
 
 import (
 	"crypto/sha256"
 	"encoding/json"
 	"testing"
 
-	"github.com/jovijovi/merkletree/merkle"
+	"github.com/jovijovi/merkletree"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	leaves = merkle.Leaves{
-		merkle.Leaf{
+	// Leaves for building merkle tree
+	leaves = merkletree.Leaves{
+		merkletree.Leaf{
 			Height:  0,
 			Payload: []byte("Hello"),
 		},
-		merkle.Leaf{
+		merkletree.Leaf{
 			Height:  0,
-			Payload: []byte("Hi"),
+			Payload: []byte("Привет"),
 		},
-		merkle.Leaf{
+		merkletree.Leaf{
 			Height:  0,
-			Payload: []byte("Hey"),
+			Payload: []byte("你好"),
 		},
-		merkle.Leaf{
+		merkletree.Leaf{
+			Height:  0,
+			Payload: []byte("こんにちは"),
+		},
+		merkletree.Leaf{
+			Height:  0,
+			Payload: []byte("안녕하세요"),
+		},
+		merkletree.Leaf{
+			Height:  0,
+			Payload: []byte("สวัสดี"),
+		},
+		merkletree.Leaf{
+			Height:  0,
+			Payload: []byte("Bonjour"),
+		},
+		merkletree.Leaf{
 			Height:  0,
 			Payload: []byte("Hola"),
 		},
-		//merkle.Leaf{
-		//	Height:  0,
-		//	Payload: []byte("你好"),
-		//},
+		merkletree.Leaf{
+			Height:  0,
+			Payload: []byte("Hallo"),
+		},
 	}
 
-	goodHash = []byte{54, 57, 239, 205, 8, 171, 178, 115, 177, 97, 158, 130, 231, 140, 41, 167, 223, 2, 193, 5, 27, 24, 32, 233, 159, 195, 149, 220, 170, 51, 38, 184}
+	// Hash(sha256) of 你好
+	goodHash = []byte{103, 13, 151, 67, 84, 44, 174, 62, 167, 235, 227, 106, 245, 107, 213, 54, 72, 176, 161, 18, 97, 98, 231, 141, 129, 163, 41, 52, 167, 17, 48, 46}
 
+	// Bad hash sample
 	badHash = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32}
 )
 
 type CustomHashFunc struct {
-	merkle.HashFunc
+	merkletree.HashFunc
 }
 
 func (h *CustomHashFunc) Hash(msg []byte) ([]byte, error) {
@@ -51,7 +70,7 @@ func (h *CustomHashFunc) Hash(msg []byte) ([]byte, error) {
 	return provider.Sum(nil), nil
 }
 
-func GetCustomHashFunc() merkle.IHashFunc {
+func GetCustomHashFunc() merkletree.IHashFunc {
 	customHashFunc := new(CustomHashFunc)
 	customHashFunc.Provider = sha256.New
 	return customHashFunc
@@ -73,7 +92,7 @@ func TestBuildTree(t *testing.T) {
 	}
 
 	// Build tree with specified hash func
-	if tree, root, err := leaves.BuildTree(merkle.WithHashFunc(GetCustomHashFunc())); err != nil {
+	if tree, root, err := leaves.BuildTree(merkletree.WithHashFunc(GetCustomHashFunc())); err != nil {
 		t.Fatal(err)
 	} else {
 		t.Log("Tree=", tree)
@@ -81,7 +100,7 @@ func TestBuildTree(t *testing.T) {
 	}
 
 	// Build tree again
-	tree, root, err := leaves.BuildTree(merkle.WithHashFunc(GetCustomHashFunc()))
+	tree, root, err := leaves.BuildTree(merkletree.WithHashFunc(GetCustomHashFunc()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +134,7 @@ func TestBuildTree(t *testing.T) {
 
 	t.Log("RootMarshalString=", string(bytes))
 
-	var rootClone merkle.Root
+	var rootClone merkletree.Root
 	if err := json.Unmarshal(bytes, &rootClone); err != nil {
 		t.Fatal(err)
 	}
@@ -132,22 +151,22 @@ func TestBuildTree(t *testing.T) {
 }
 
 func TestPoNs_GetPath(t *testing.T) {
-	pons := make(merkle.PoNs, 0)
+	pons := make(merkletree.PoNs, 0)
 	pons.GetPath(5, 0, 1)
 	t.Log("MerklePath=", pons)
 }
 
 func TestTree_Prove(t *testing.T) {
 	// Build tree
-	tree, root, err := leaves.BuildTree(merkle.WithHashFunc(GetCustomHashFunc()))
+	tree, root, err := leaves.BuildTree(merkletree.WithHashFunc(GetCustomHashFunc()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("RootHash=", root.Hash)
 
 	// Get merkle path
-	merklePath := make(merkle.PoNs, 0)
-	merklePath.GetPath(tree.Height(), 0, 1)
+	merklePath := make(merkletree.PoNs, 0)
+	merklePath.GetPath(tree.Height(), 0, 2)
 	t.Log("MerklePath=", merklePath)
 
 	// Prove hash is good

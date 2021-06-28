@@ -2,14 +2,15 @@ package merkletree
 
 import (
 	"context"
-
-	"golang.org/x/crypto/sha3"
 )
 
 // Options for func
 type Options struct {
-	// Hash function
-	HashFunc HashFunc
+	// HashFunc interface
+	HashFunc IHashFunc
+
+	// SkipHash switch
+	SkipHash bool
 
 	// Options for implementations of the interface can be stored in a context
 	Context context.Context
@@ -22,7 +23,7 @@ type OptionFunc func(opts *Options)
 func NewOptions(optionFunc ...OptionFunc) Options {
 	opts := Options{
 		Context:  context.Background(),
-		HashFunc: sha3.NewLegacyKeccak256,
+		HashFunc: DefaultHashFunc(),
 	}
 
 	for _, f := range optionFunc {
@@ -33,8 +34,15 @@ func NewOptions(optionFunc ...OptionFunc) Options {
 }
 
 // WithHashFunc option to configure hash function
-func WithHashFunc(hashFunc HashFunc) OptionFunc {
+func WithHashFunc(hashFunc IHashFunc) OptionFunc {
 	return func(o *Options) {
 		o.HashFunc = hashFunc
+	}
+}
+
+// WithSkipHash option to configure skip hash
+func WithSkipHash(skipHash bool) OptionFunc {
+	return func(o *Options) {
+		o.SkipHash = skipHash
 	}
 }
