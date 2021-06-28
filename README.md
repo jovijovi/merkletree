@@ -6,8 +6,10 @@ A Merkle Tree written in Go.
 
 ## Features
 
+- Store merkle tree in byte array
 - Serialization/Deserialize a Merkle tree
 - Calculate merkle tree path
+- Merkle proofs
 
 ## Install
 
@@ -21,7 +23,7 @@ go get github.com/jovijovi/merkletree
 
 ## Roadmap
 
-- Merkle proofs
+- Documents
 
 ## License
 

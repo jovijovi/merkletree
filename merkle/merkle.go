@@ -1,6 +1,7 @@
 package merkle
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -262,6 +263,34 @@ func (tree *Tree) GetHash(y uint64, x uint64) ([]byte, error) {
 	}
 
 	return (*tree)[y][x], nil
+}
+
+// Prove returns merkle proofs result
+func (tree *Tree) Prove(merklePath *PoNs, unverifiedHash []byte, h IHashFunc) (bool, error) {
+	digest := unverifiedHash
+
+	for _, pon := range *merklePath {
+		brother, err := tree.GetHash(pon[0], pon[1])
+		if err != nil {
+			return false, err
+		}
+
+		if pon[1]%2 == 0 {
+			digest, err = h.Hash(append(brother, digest...))
+		} else {
+			digest, err = h.Hash(append(digest, brother...))
+		}
+		if err != nil {
+			return false, err
+		}
+	}
+
+	rootHash, err := tree.GetRootHash()
+	if err != nil {
+		return false, err
+	}
+
+	return bytes.Compare(rootHash, digest) == 0, nil
 }
 
 // PoN is position of node, PoN[0] is y, PoN[1] is x

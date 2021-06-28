@@ -9,27 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type CustomHashFunc struct {
-	merkle.HashFunc
-}
-
-func (h *CustomHashFunc) Hash(msg []byte) ([]byte, error) {
-	provider := h.Provider()
-	if _, err := provider.Write(msg); err != nil {
-		return nil, err
-	}
-
-	return provider.Sum(nil), nil
-}
-
-func GetCustomHashFunc() merkle.IHashFunc {
-	customHashFunc := new(CustomHashFunc)
-	customHashFunc.Provider = sha256.New
-	return customHashFunc
-}
-
-func TestA(t *testing.T) {
-	leaves := merkle.Leaves{
+var (
+	leaves = merkle.Leaves{
 		merkle.Leaf{
 			Height:  0,
 			Payload: []byte("Hello"),
@@ -52,6 +33,31 @@ func TestA(t *testing.T) {
 		//},
 	}
 
+	goodHash = []byte{54, 57, 239, 205, 8, 171, 178, 115, 177, 97, 158, 130, 231, 140, 41, 167, 223, 2, 193, 5, 27, 24, 32, 233, 159, 195, 149, 220, 170, 51, 38, 184}
+
+	badHash = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32}
+)
+
+type CustomHashFunc struct {
+	merkle.HashFunc
+}
+
+func (h *CustomHashFunc) Hash(msg []byte) ([]byte, error) {
+	provider := h.Provider()
+	if _, err := provider.Write(msg); err != nil {
+		return nil, err
+	}
+
+	return provider.Sum(nil), nil
+}
+
+func GetCustomHashFunc() merkle.IHashFunc {
+	customHashFunc := new(CustomHashFunc)
+	customHashFunc.Provider = sha256.New
+	return customHashFunc
+}
+
+func TestBuildTree(t *testing.T) {
 	// Build tree with default hash func
 	if tree, root, err := leaves.BuildTree(); err != nil {
 		t.Fatal(err)
@@ -125,36 +131,38 @@ func TestA(t *testing.T) {
 	assert.Equal(t, bytes, bytes2)
 }
 
-func TestB(t *testing.T) {
-	leaves := merkle.Leaves{
-		merkle.Leaf{
-			Height: 0,
-			Hash:   []byte{24, 95, 141, 179, 34, 113, 254, 37, 245, 97, 166, 252, 147, 139, 46, 38, 67, 6, 236, 48, 78, 218, 81, 128, 7, 209, 118, 72, 38, 56, 25, 105},
-		},
-		merkle.Leaf{
-			Height: 1,
-			Hash:   []byte{54, 57, 239, 205, 8, 171, 178, 115, 177, 97, 158, 130, 231, 140, 41, 167, 223, 2, 193, 5, 27, 24, 32, 233, 159, 195, 149, 220, 170, 51, 38, 184},
-		},
-		merkle.Leaf{
-			Height: 2,
-			Hash:   []byte{103, 184, 144, 26, 195, 1, 53, 231, 77, 66, 3, 109, 250, 96, 67, 54, 225, 249, 120, 228, 158, 224, 214, 191, 72, 74, 70, 255, 39, 162, 174, 156},
-		},
-	}
-
-	// Build tree with specified hash func
-	if tree, root, err := leaves.BuildTree(
-		merkle.WithHashFunc(GetCustomHashFunc()),
-		merkle.WithSkipHash(true),
-	); err != nil {
-		t.Fatal(err)
-	} else {
-		t.Log("Tree=", tree)
-		t.Log("Root=", root)
-	}
-}
-
 func TestPoNs_GetPath(t *testing.T) {
 	pons := make(merkle.PoNs, 0)
 	pons.GetPath(5, 0, 1)
 	t.Log("MerklePath=", pons)
+}
+
+func TestTree_Prove(t *testing.T) {
+	// Build tree
+	tree, root, err := leaves.BuildTree(merkle.WithHashFunc(GetCustomHashFunc()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("RootHash=", root.Hash)
+
+	// Get merkle path
+	merklePath := make(merkle.PoNs, 0)
+	merklePath.GetPath(tree.Height(), 0, 1)
+	t.Log("MerklePath=", merklePath)
+
+	// Prove hash is good
+	resultGood, err := tree.Prove(&merklePath, goodHash, GetCustomHashFunc())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("Result=", resultGood)
+	assert.Equal(t, true, resultGood)
+
+	// Prove hash is bad
+	resultBad, err := tree.Prove(&merklePath, badHash, GetCustomHashFunc())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("Result=", resultBad)
+	assert.Equal(t, false, resultBad)
 }
