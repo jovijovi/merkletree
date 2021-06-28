@@ -4,6 +4,10 @@ This repo forked from [cbergoon/merkletree](https://github.com/cbergoon/merkletr
 
 A Merkle Tree written in Go.
 
+## Features
+
+- Serialization/Deserialize a Merkle tree
+
 ## Install
 
 ```
@@ -16,7 +20,8 @@ go get github.com/jovijovi/merkletree
 
 ## Roadmap
 
-- Serialization/Deserialize a Merkle tree
+- Calculate merkle tree path
+- Merkle proofs
 
 ## License
 
