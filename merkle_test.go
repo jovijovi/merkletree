@@ -163,6 +163,7 @@ func TestTree_Prove(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("RootHash=", root.Hash)
+	t.Log("RootHash(hex)=", merkletree.Hex(root.Hash))
 
 	// Get merkle path
 	merklePath := make(merkletree.PoNs, 0)
