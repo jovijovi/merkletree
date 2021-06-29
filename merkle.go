@@ -76,12 +76,14 @@ func (node *Leaf) Clone() *Leaf {
 	return &clone
 }
 
+// Marshal returns bytes of tree
 func (node *Root) Marshal() ([]byte, error) {
 	return json.Marshal(node)
 }
 
 type Leaves []Leaf
 
+// Length returns length of leaves
 func (obj *Leaves) Length() int {
 	if obj == nil {
 		return 0
@@ -90,10 +92,12 @@ func (obj *Leaves) Length() int {
 	return len(*obj)
 }
 
+// IsEmpty returns if leaves if empty
 func (obj *Leaves) IsEmpty() bool {
 	return obj.Length() == 0
 }
 
+// LastLeaf returns the last leaf
 func (obj *Leaves) LastLeaf() *Leaf {
 	if obj == nil {
 		return nil
@@ -102,6 +106,7 @@ func (obj *Leaves) LastLeaf() *Leaf {
 	return &(*obj)[obj.Length()-1]
 }
 
+// BuildTree build tree by options, returns tree & root
 func (obj *Leaves) BuildTree(opt ...OptionFunc) (*Tree, *Root, error) {
 	if obj == nil || obj.IsEmpty() {
 		return nil, nil, errors.New("not found leaf")
@@ -134,6 +139,7 @@ func (obj *Leaves) BuildTree(opt ...OptionFunc) (*Tree, *Root, error) {
 	return tree, root, nil
 }
 
+// Hash calc hash of leaves
 func (obj *Leaves) Hash(h IHashFunc) error {
 	for i := 0; i < obj.Length(); i++ {
 		digest, err := h.Hash((*obj)[i].Payload)
@@ -147,6 +153,7 @@ func (obj *Leaves) Hash(h IHashFunc) error {
 	return nil
 }
 
+// initTree init a tree
 func (obj *Leaves) initTree() (*Tree, error) {
 	if obj.Length() == 0 {
 		return nil, errors.New("not found")
@@ -164,6 +171,7 @@ func (obj *Leaves) initTree() (*Tree, error) {
 	return &tree, nil
 }
 
+// buildBranch build branch, fill the tree & returns root
 func (obj *Leaves) buildBranch(nodes []Node, tree *Tree, h IHashFunc) (*Root, error) {
 	var branches []Node
 	var hashSet []Hash
