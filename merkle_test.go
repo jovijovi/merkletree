@@ -11,7 +11,7 @@ import (
 
 var (
 	// Leaves for building merkle tree
-	leaves = merkletree.Leaves{
+	MockLeaves = merkletree.Leaves{
 		merkletree.Leaf{
 			Height:  0,
 			Payload: []byte("Hello"),
@@ -61,6 +61,7 @@ type CustomHashFunc struct {
 	merkletree.HashFunc
 }
 
+// Custom impl of hash
 func (h *CustomHashFunc) Hash(msg []byte) ([]byte, error) {
 	provider := h.Provider()
 	if _, err := provider.Write(msg); err != nil {
@@ -70,93 +71,176 @@ func (h *CustomHashFunc) Hash(msg []byte) ([]byte, error) {
 	return provider.Sum(nil), nil
 }
 
+// GetCustomHashFunc returns custom hash func
 func GetCustomHashFunc() merkletree.IHashFunc {
 	customHashFunc := new(CustomHashFunc)
 	customHashFunc.Provider = sha256.New
 	return customHashFunc
 }
 
-func TestBuildTree(t *testing.T) {
-	// Build tree with default hash func
-	if tree, root, err := leaves.BuildTree(); err != nil {
+// Build tree with default hash func
+func TestLeaves_BuildTree_Simple(t *testing.T) {
+	leaves := MockLeaves
+	tree, root, err := leaves.BuildTree()
+	if err != nil {
 		t.Fatal(err)
-	} else {
-		t.Log("Tree=", tree)
-		rootHash, err := tree.GetRootHash()
-		if err != nil {
-			t.Fatal(err)
-		}
-		t.Log("TreeRootHash=", rootHash)
-		t.Log("Root=", root)
-		assert.Equal(t, rootHash, root.Hash)
+	}
+	t.Log("Tree=", tree)
+	t.Log("Root=", root)
+}
+
+// Build tree without hash(skip hash)
+func TestLeaves_BuildTree_SkipHash(t *testing.T) {
+	leaves := MockLeaves
+	if err := leaves.Hash(GetCustomHashFunc()); err != nil {
+		t.Fatal(err)
 	}
 
-	// Build tree with specified hash func
-	if tree, root, err := leaves.BuildTree(merkletree.WithHashFunc(GetCustomHashFunc())); err != nil {
-		t.Fatal(err)
-	} else {
-		t.Log("Tree=", tree)
-		t.Log("Root=", root)
-	}
-
-	// Build tree again
-	tree, root, err := leaves.BuildTree(merkletree.WithHashFunc(GetCustomHashFunc()))
+	tree, root, err := leaves.BuildTree(merkletree.WithSkipHash(true))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("Tree=", tree)
 	t.Log("Root=", root)
 
-	bytesOfTree, err := tree.Marshal()
+	rootHash, err := tree.GetRootHash()
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("Length of TreeMarshal=", len(bytesOfTree))
-	t.Log("TreeMarshal=", bytesOfTree)
-	t.Log("TreeMarshalString=", string(bytesOfTree))
+	t.Log("TreeRootHash=", rootHash)
+
+	assert.Equal(t, rootHash, root.Hash)
+}
+
+// Build tree with specified hash func
+func TestLeaves_BuildTree_WithCustomHashFunc(t *testing.T) {
+	leaves := MockLeaves
+
+	// Build tree
+	tree1, root1, err := leaves.BuildTree(merkletree.WithHashFunc(GetCustomHashFunc()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("Tree1=", *tree1)
+	t.Log("Root1=", *root1)
+
+	// Build tree again
+	tree2, root2, err := leaves.BuildTree(merkletree.WithHashFunc(GetCustomHashFunc()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("Tree2=", *tree2)
+	t.Log("Root2=", *root2)
+
+	assert.Equal(t, *tree1, *tree2)
+	assert.Equal(t, *root1, *root2)
+}
+
+// Root marshal
+func TestRoot_Marshal(t *testing.T) {
+	leaves := MockLeaves
+
+	// Build tree, get root1
+	_, root1, err := leaves.BuildTree(merkletree.WithHashFunc(GetCustomHashFunc()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("Root_1=", *root1)
+
+	// Marshal root1, get bytes1
+	bytes1, err := root1.Marshal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("RootMarshal_1=", bytes1)
+	t.Log("RootMarshalString_1=", string(bytes1))
+
+	// Unmarshal bytes1, get root2
+	var root2 merkletree.Root
+	if err := json.Unmarshal(bytes1, &root2); err != nil {
+		t.Fatal(err)
+	}
+	t.Log("Root_2=", root2)
+
+	// Marshal root2, get bytes2
+	bytes2, err := root2.Marshal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("RootMarshal_2=", bytes2)
+	t.Log("RootMarshalString_2=", string(bytes2))
+
+	// Check equal
+	assert.Equal(t, bytes1, bytes2)
+}
+
+// Tree marshal
+func TestTree_Marshal(t *testing.T) {
+	leaves := MockLeaves
+
+	// Build tree
+	tree1, _, err := leaves.BuildTree(merkletree.WithHashFunc(GetCustomHashFunc()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("Tree1=", tree1)
+
+	// Marshal tree1
+	bytes1, err := tree1.Marshal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("TreeMarshal_1=", bytes1)
+	t.Log("TreeMarshalString_1=", string(bytes1))
+
+	var tree2 merkletree.Tree
+	if err := json.Unmarshal(bytes1, &tree2); err != nil {
+		t.Fatal(err)
+	}
+	t.Log("Tree2=", tree2)
+
+	bytes2, err := tree2.Marshal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("TreeMarshal_2=", bytes2)
+	t.Log("TreeMarshalString_2=", string(bytes2))
+
+	assert.Equal(t, bytes1, bytes2)
+}
+
+// Get hash from tree by coordinate(y, x)
+func TestTree_GetHash(t *testing.T) {
+	leaves := MockLeaves
+	tree, _, err := leaves.BuildTree()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	hash1, err := tree.GetHash(0, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("Hash1=", hash1)
+
 	hash2, err := tree.GetHash(1, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("Hash2=", hash2)
-
-	bytes, err := root.Marshal()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log("RootMarshal=", bytes)
-
-	t.Log("RootMarshalString=", string(bytes))
-
-	var rootClone merkletree.Root
-	if err := json.Unmarshal(bytes, &rootClone); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Log("RootClone=", rootClone)
-
-	bytes2, err := rootClone.Marshal()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log("Marshal2", bytes2)
-
-	assert.Equal(t, bytes, bytes2)
 }
 
+// Calculate merkle path
 func TestPoNs_GetPath(t *testing.T) {
 	pons := make(merkletree.PoNs, 0)
 	pons.GetPath(5, 0, 1)
 	t.Log("MerklePath=", pons)
 }
 
+// Merkle proofs
 func TestTree_Prove(t *testing.T) {
+	leaves := MockLeaves
+
 	// Build tree
 	tree, root, err := leaves.BuildTree(merkletree.WithHashFunc(GetCustomHashFunc()))
 	if err != nil {
