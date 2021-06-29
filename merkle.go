@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"hash"
 
 	"golang.org/x/crypto/sha3"
@@ -39,7 +38,7 @@ func DefaultHashFunc() IHashFunc {
 	return hashFunc
 }
 
-type Hash []byte
+type Hash = []byte
 
 type Tree [][]Hash
 
@@ -61,6 +60,26 @@ func NewLeaf() Leaf {
 	}
 }
 
+// Clone returns a clone of the leaf
+func (node *Leaf) Clone() *Leaf {
+	if node == nil {
+		return nil
+	}
+
+	clone := NewLeaf()
+	clone.Height = node.Height
+	clone.Hash = node.Hash
+	clone.Left = node.Left
+	clone.Right = node.Right
+	clone.Payload = node.Payload
+
+	return &clone
+}
+
+func (node *Root) Marshal() ([]byte, error) {
+	return json.Marshal(node)
+}
+
 type Leaves []Leaf
 
 func (obj *Leaves) Length() int {
@@ -71,6 +90,10 @@ func (obj *Leaves) Length() int {
 	return len(*obj)
 }
 
+func (obj *Leaves) IsEmpty() bool {
+	return obj.Length() == 0
+}
+
 func (obj *Leaves) LastLeaf() *Leaf {
 	if obj == nil {
 		return nil
@@ -79,16 +102,8 @@ func (obj *Leaves) LastLeaf() *Leaf {
 	return &(*obj)[obj.Length()-1]
 }
 
-func (obj *Leaves) Clone(leaf *Leaf) *Leaf {
-	clone := NewLeaf()
-	clone.Height = leaf.Height
-	clone.Hash = leaf.Hash
-	clone.Payload = leaf.Payload
-	return &clone
-}
-
 func (obj *Leaves) BuildTree(opt ...OptionFunc) (*Tree, *Root, error) {
-	if obj == nil {
+	if obj == nil || obj.IsEmpty() {
 		return nil, nil, errors.New("not found leaf")
 	}
 	opts := NewOptions(opt...)
@@ -96,21 +111,13 @@ func (obj *Leaves) BuildTree(opt ...OptionFunc) (*Tree, *Root, error) {
 	h := opts.HashFunc
 
 	if !opts.SkipHash {
-		for i := 0; i < obj.Length(); i++ {
-			digest, err := h.Hash((*obj)[i].Payload)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			(*obj)[i].Hash = digest
-
-			// TODO:
-			fmt.Println(fmt.Sprintf("Payload=%s, Digest=%v", (*obj)[i].Payload, (*obj)[i].Hash))
+		if err := obj.Hash(h); err != nil {
+			return nil, nil, err
 		}
 	}
 
 	if obj.Length()%2 == 1 {
-		clone := obj.Clone(obj.LastLeaf())
+		clone := obj.LastLeaf().Clone()
 		*obj = append(*obj, *clone)
 	}
 
@@ -125,6 +132,19 @@ func (obj *Leaves) BuildTree(opt ...OptionFunc) (*Tree, *Root, error) {
 	}
 
 	return tree, root, nil
+}
+
+func (obj *Leaves) Hash(h IHashFunc) error {
+	for i := 0; i < obj.Length(); i++ {
+		digest, err := h.Hash((*obj)[i].Payload)
+		if err != nil {
+			return err
+		}
+
+		(*obj)[i].Hash = digest
+	}
+
+	return nil
 }
 
 func (obj *Leaves) initTree() (*Tree, error) {
@@ -161,10 +181,8 @@ func (obj *Leaves) buildBranch(nodes []Node, tree *Tree, h IHashFunc) (*Root, er
 			return nil, err
 		}
 
-		Height := nodes[left].Height + 1
-
 		branch := Node{
-			Height: Height,
+			Height: nodes[left].Height + 1,
 			Hash:   digest,
 			Left:   &nodes[left],
 			Right:  &nodes[right],
@@ -184,11 +202,7 @@ func (obj *Leaves) buildBranch(nodes []Node, tree *Tree, h IHashFunc) (*Root, er
 	return obj.buildBranch(branches, tree, h)
 }
 
-func (root *Root) Marshal() ([]byte, error) {
-	return json.Marshal(root)
-}
-
-/*
+/***************************
      Y
      ^
      |
@@ -200,7 +214,7 @@ func (root *Root) Marshal() ([]byte, error) {
 0    | 0 | 1 | 2 |
    --+-----------------> X
      | 0   1   2
-*/
+***************************/
 
 // Marshal returns bytes of tree
 func (tree *Tree) Marshal() ([]byte, error) {
