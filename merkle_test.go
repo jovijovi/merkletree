@@ -270,3 +270,19 @@ func TestTree_Prove(t *testing.T) {
 	t.Log("Result=", resultBad)
 	assert.Equal(t, false, resultBad)
 }
+
+func TestLeaves_BuildTree_WithSort(t *testing.T) {
+	leaves := MockLeaves
+	if err := leaves.Hash(GetCustomHashFunc()); err != nil {
+		t.Fatal(err)
+	}
+	t.Log("Leaves=\n", leaves)
+	leaves.Sort()
+	t.Log("Leaves(Sorted)=\n", leaves)
+	tree, root, err := leaves.BuildTree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("Tree=", tree)
+	t.Log("Root=", root)
+}

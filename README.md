@@ -10,6 +10,7 @@ This repo forked from [cbergoon/merkletree](https://github.com/cbergoon/merkletr
 - Serialization/Deserialize a Merkle tree
 - Calculate merkle tree path
 - Merkle proofs
+- Sort leaves by hash
 
 ## Install
 

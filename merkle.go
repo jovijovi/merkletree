@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"hash"
+	"sort"
 
 	"golang.org/x/crypto/sha3"
 )
@@ -151,6 +152,11 @@ func (obj *Leaves) Hash(h IHashFunc) error {
 	}
 
 	return nil
+}
+
+// Sort leaves by hash
+func (obj *Leaves) Sort() {
+	sort.Sort(obj)
 }
 
 // initTree init a tree
