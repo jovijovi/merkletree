@@ -159,6 +159,34 @@ func (obj *Leaves) Sort() {
 	sort.Sort(obj)
 }
 
+// Add leaf to leaves
+func (obj *Leaves) Add(leaf *Leaf) {
+	if obj == nil || leaf == nil {
+		return
+	}
+	*obj = append(*obj, *leaf)
+}
+
+// Clone returns a clone of the leaves
+func (obj *Leaves) Clone() *Leaves {
+	if obj == nil {
+		return nil
+	}
+
+	leaves := make(Leaves, 0)
+	for _, leaf := range *obj {
+		if clone := leaf.Clone(); clone != nil {
+			leaves = append(leaves, *clone)
+		}
+	}
+
+	if obj.Length() != leaves.Length() {
+		return nil
+	}
+
+	return &leaves
+}
+
 // initTree init a tree
 func (obj *Leaves) initTree() (*Tree, error) {
 	if obj.Length() == 0 {
