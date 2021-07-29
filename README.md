@@ -25,6 +25,7 @@ go get github.com/jovijovi/merkletree
 ## Roadmap
 
 - Documents
+- Concurrency
 
 ## License
 
