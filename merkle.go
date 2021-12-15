@@ -10,20 +10,25 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+// HashProvider hash provider
 type HashProvider func() hash.Hash
 
+// IHashFunc hash interface
 type IHashFunc interface {
 	Hash(msg []byte) ([]byte, error)
 }
 
+// ITree tree interface
 type ITree interface {
 	BuildTree(opt ...OptionFunc) error
 }
 
+// HashFunc hash function
 type HashFunc struct {
 	Provider HashProvider
 }
 
+// Hash returns message digest
 func (h *HashFunc) Hash(msg []byte) ([]byte, error) {
 	provider := h.Provider()
 	if _, err := provider.Write(msg); err != nil {
@@ -33,16 +38,20 @@ func (h *HashFunc) Hash(msg []byte) ([]byte, error) {
 	return provider.Sum(nil), nil
 }
 
+// DefaultHashFunc returns default hash interface
 func DefaultHashFunc() IHashFunc {
 	hashFunc := new(HashFunc)
 	hashFunc.Provider = sha3.NewLegacyKeccak256
 	return hashFunc
 }
 
+// Hash node hash
 type Hash = []byte
 
+// Tree merkle tree
 type Tree [][]Hash
 
+// Node merkle tree node
 type Node struct {
 	Height  int
 	Hash    []byte
@@ -51,10 +60,13 @@ type Node struct {
 	Payload []byte
 }
 
+// Leaf merkle tree leaf
 type Leaf = Node
 
+// Root merkle tree root
 type Root = Node
 
+// NewLeaf returns a new leaf
 func NewLeaf() Leaf {
 	return Leaf{
 		Height: 0,
@@ -82,6 +94,7 @@ func (node *Root) Marshal() ([]byte, error) {
 	return json.Marshal(node)
 }
 
+// Leaves merkle tree leaves
 type Leaves []Leaf
 
 // Length returns length of leaves
