@@ -1,0 +1,33 @@
+name: Go
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test all
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go:
+          - "1.15.x"
+          - "1.16.x"
+          - "1.17.x"
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{matrix.go}}
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Download modules
+        run: go mod download
+      - name: Test
+        run: go test -v -race -covermode=atomic -coverprofile=coverage.out ./...
+      - name: Upload coverage profile
+        uses: codecov/codecov-action@v2
+        with:
+          file: coverage.out
