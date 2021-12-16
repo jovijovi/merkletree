@@ -87,6 +87,20 @@ func TestLeaves_BuildTree_Simple(t *testing.T) {
 	}
 	t.Log("Tree=", tree)
 	t.Log("Root=", root)
+
+	var invalidLeaves1 *merkletree.Leaves
+	_, _, err = invalidLeaves1.BuildTree()
+	if err != nil {
+		t.Log("leaves1 is nil, build tree failed as expected")
+	}
+	assert.NotNil(t, err)
+
+	var invalidLeaves2 merkletree.Leaves
+	_, _, err = invalidLeaves2.BuildTree()
+	if err != nil {
+		t.Log("leaves2 is empty, build tree failed as expected")
+	}
+	assert.NotNil(t, err)
 }
 
 // Build tree with sorted leaves
@@ -226,6 +240,14 @@ func TestTree_Marshal(t *testing.T) {
 	t.Log("TreeMarshalString_2=", string(bytes2))
 
 	assert.Equal(t, bytes1, bytes2)
+
+	// Test invalid tree
+	var invalidTree1 *merkletree.Tree
+	_, err = invalidTree1.Marshal()
+	if err != nil {
+		t.Log("tree is nil, marshal tree failed as expected")
+	}
+	assert.NotNil(t, err)
 }
 
 // Get hash from tree by coordinate(y, x)
@@ -288,4 +310,218 @@ func TestTree_Prove(t *testing.T) {
 	}
 	t.Log("Result=", resultBad)
 	assert.Equal(t, false, resultBad)
+}
+
+// Clone leaf
+func TestLeaf_Clone(t *testing.T) {
+	clone1 := MockLeaves[0].Clone()
+	if clone1 == nil {
+		t.Fatal("clone leaf failed")
+	}
+	assert.Equal(t, *clone1, MockLeaves[0])
+
+	var invalidLeaf *merkletree.Leaf = nil
+	clone2 := invalidLeaf.Clone()
+	if clone2 == nil {
+		t.Log("leaf is nil, clone failed as expected.")
+	}
+	assert.Nil(t, clone2)
+}
+
+// Get length of leaves
+func TestLeaves_Length(t *testing.T) {
+	len1 := MockLeaves.Length()
+	if len1 == 0 {
+		t.Fatal("get length of leaves failed")
+	}
+	assert.NotZero(t, len1)
+
+	var invalidLeaves *merkletree.Leaves
+	len2 := invalidLeaves.Length()
+	if len2 == 0 {
+		t.Log("leaves is nil, get length failed as expected.")
+	}
+	assert.Zero(t, len2)
+}
+
+// Get last leaf
+func TestLeaves_LastLeaf(t *testing.T) {
+	leaf1 := MockLeaves.LastLeaf()
+	if leaf1 == nil {
+		t.Fatal("get last leaf failed")
+	}
+	assert.NotNil(t, leaf1)
+
+	var invalidLeaves *merkletree.Leaves
+	leaf2 := invalidLeaves.LastLeaf()
+	if leaf2 == nil {
+		t.Log("leaves is nil, get last leaf failed as expected")
+	}
+	assert.Nil(t, leaf2)
+}
+
+// Add leaf to leaves
+func TestLeaves_Add(t *testing.T) {
+	// Test add leaf
+	var leaves merkletree.Leaves
+	leaves.Add(&merkletree.Leaf{})
+	leavesLen := leaves.Length()
+	assert.NotZero(t, leaves.Length())
+
+	// Test add nil leaf
+	var nilLeaf *merkletree.Leaf = nil
+	leaves.Add(nilLeaf)
+	assert.Equal(t, leavesLen, leaves.Length())
+
+	var invalidLeaves *merkletree.Leaves
+	invalidLeaves.Add(&merkletree.Leaf{})
+	assert.Zero(t, invalidLeaves.Length())
+}
+
+// Clone leaves
+func TestLeaves_Clone(t *testing.T) {
+	clone1 := MockLeaves.Clone()
+	if clone1 == nil {
+		t.Fatal("clone leaves failed")
+	}
+	assert.Equal(t, *clone1, MockLeaves)
+
+	var invalidLeaves *merkletree.Leaves
+	clone2 := invalidLeaves.Clone()
+	if clone2 == nil {
+		t.Log("leaves is nil, clone failed as expected")
+	}
+	assert.Nil(t, clone2)
+}
+
+// Get tree height
+func TestTree_Height(t *testing.T) {
+	leaves := MockLeaves
+
+	// Build tree
+	tree1, _, err := leaves.BuildTree(merkletree.WithHashFunc(GetCustomHashFunc()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("Tree1=", tree1)
+
+	// Test get tree height
+	height1 := tree1.Height()
+	if height1 == 0 {
+		t.Fatal("invalid tree, get tree height failed")
+	}
+	assert.NotZero(t, height1)
+
+	// Test invalid tree
+	var invalidTree1 *merkletree.Tree
+	height2 := invalidTree1.Height()
+	if height2 == 0 {
+		t.Log("tree is nil, get tree height failed as expected")
+	}
+	assert.Zero(t, height2)
+}
+
+// Get tree width
+func TestTree_Width(t *testing.T) {
+	leaves := MockLeaves
+
+	// Build tree
+	tree1, _, err := leaves.BuildTree(merkletree.WithHashFunc(GetCustomHashFunc()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("Tree1=", tree1)
+
+	// Test get tree width
+	width1 := tree1.Width(0)
+	if width1 == 0 {
+		t.Fatal("invalid tree, get tree width failed")
+	}
+	assert.NotZero(t, width1)
+
+	// Test invalid tree
+	var invalidTree1 *merkletree.Tree
+	width2 := invalidTree1.Width(0)
+	if width2 == 0 {
+		t.Log("tree is nil, get tree width failed as expected")
+	}
+	assert.Zero(t, width2)
+
+	// Test empty tree
+	var invalidTree2 merkletree.Tree
+	width3 := invalidTree2.Width(0)
+	if width3 == 0 {
+		t.Log("tree is empty, get tree width failed as expected")
+	}
+	assert.Zero(t, width3)
+}
+
+// Get tree Y
+func TestTree_Y(t *testing.T) {
+	leaves := MockLeaves
+
+	// Build tree
+	tree1, _, err := leaves.BuildTree(merkletree.WithHashFunc(GetCustomHashFunc()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("Tree1=", tree1)
+
+	// Test get Y
+	y1 := tree1.Y()
+	if y1 == 0 {
+		t.Fatal("invalid tree, get Y failed")
+	}
+	assert.NotZero(t, y1)
+
+	// Test invalid tree
+	var invalidTree1 *merkletree.Tree
+	y2 := invalidTree1.Y()
+	if y2 == 0 {
+		t.Log("tree is nil, get Y failed as expected")
+	}
+	assert.Zero(t, y2)
+
+	// Test empty tree
+	var invalidTree2 merkletree.Tree
+	y3 := invalidTree2.Y()
+	if y3 == 0 {
+		t.Log("tree is empty, get Y failed as expected")
+	}
+	assert.Zero(t, y3)
+}
+
+// Get tree X
+func TestTree_X(t *testing.T) {
+	leaves := MockLeaves
+
+	// Build tree
+	tree1, _, err := leaves.BuildTree(merkletree.WithHashFunc(GetCustomHashFunc()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("Tree1=", tree1)
+
+	// Test get X
+	x1 := tree1.X(0)
+	if x1 == 0 {
+		t.Fatal("invalid tree, get X failed")
+	}
+	assert.NotZero(t, x1)
+
+	// Test invalid tree
+	var invalidTree1 *merkletree.Tree
+	x2 := invalidTree1.X(0)
+	if x2 == 0 {
+		t.Log("tree is nil, get X failed as expected")
+	}
+	assert.Zero(t, x2)
+
+	// Test empty tree
+	var invalidTree2 merkletree.Tree
+	x3 := invalidTree2.X(0)
+	if x3 == 0 {
+		t.Log("tree is empty, get X failed as expected")
+	}
+	assert.Zero(t, x3)
 }
